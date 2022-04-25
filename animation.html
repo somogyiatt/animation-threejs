@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Three.js project</title>
+</head>
+<body>
+
+
+<script type="module">
+    import * as THREE from './js-r132/build/three.module.js';
+    import {TrackballControls} from './js-r132/examples/jsm/controls/TrackballControls.js';
+
+    var WIDTH, HEIGHT, aspectRatio;
+    var renderer;
+    var scene, camera;
+    var controls;
+    var vonatTestMesh;
+
+    var irany = 1;
+
+    var sLight;
+    var s2Light;
+    var pressedChar;
+    var clock = new THREE.Clock();
+    var delta;
+    var mesh;
+
+
+    var data = {
+        text : "Three.js",
+        size : 4,
+        height : 2,
+        curveSegments : 12,
+        bevelEnabled : false,
+        bevelThickness : 1,
+        bevelSize : 0.5
+    };
+
+    init();
+
+    animate();
+
+
+    function generateTextGeometry() {
+        var loader = new THREE.FontLoader();
+        loader.load( 'fonts/gentilis_regular.typeface.json', function ( font ) {
+            var geometry = new THREE.TextGeometry( data.text, {
+                font: font,
+                size: data.size,
+                height: data.height,
+                curveSegments: data.curveSegments,
+                bevelEnabled: data.bevelEnabled,
+                bevelThickness: data.bevelThickness,
+                bevelSize: data.bevelSize
+            } );
+            geometry.center();
+
+            if( !mesh ) {
+                // Ha még nem volt mesh létrehozás, készítsünk egyet.
+                var textMaterial = new THREE.MeshPhongMaterial( { color: 0xe0e0a0, wireframe: false } );
+                mesh = new THREE.Mesh( geometry, textMaterial );
+                mesh.position.y = 40;
+                mesh.position.z = 20;
+                mesh.position.x = -10;
+                scene.add( mesh );
+            } else {
+                // Ha már volt korábbi mesh, akkor elég a geometriát lecserélni.
+                mesh.geometry.dispose();
+                mesh.geometry = geometry;
+                mesh.position.y = 20;
+                mesh.position.z = 20;
+                mesh.position.x = 20;
+            }
+        } );
+    }
+    function init() {
+        HEIGHT = window.innerHeight;
+        WIDTH = window.innerWidth;
+        aspectRatio = WIDTH / HEIGHT;
+
+        renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setSize(WIDTH, HEIGHT);
+        renderer.setClearColor(0x000000);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        scene = new THREE.Scene();
+
+        camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 1000);
+        camera.position.set(0, 10, 50);
+        camera.lookAt(scene.position);
+
+        window.addEventListener('keydown', handleKeyPress);
+
+        /*
+                axis
+                var axesHelper = new THREE.AxesHelper( 30 );
+                scene.add( axesHelper );
+        */
+
+        var textureLoader = new THREE.TextureLoader();
+        var fal = textureLoader.load('textures/tegla.jpg');
+        var teto = textureLoader.load('textures/teto.jpg');
+        var szovet = textureLoader.load('textures/szovet.jpg');
+        var fold = textureLoader.load('textures/fold.jpg');
+        var vagontest = textureLoader.load('textures/vagontest.jpg');
+        var metal = textureLoader.load('textures/metal.jpg');
+        var ego = textureLoader.load('textures/ego.jpg');
+        var tabla = textureLoader.load('textures/tabla.jpg');
+
+
+
+        var groundGeometry = new THREE.PlaneGeometry(60, 60, 20, 20);
+        var groundMaterial = new THREE.MeshPhongMaterial({
+            // color: 0x00ff00,
+            // wireframe: false,
+            side: THREE.DoubleSide
+        });
+        groundMaterial.map = fold;
+
+        var groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
+        groundMesh.rotation.x = THREE.MathUtils.degToRad(90);
+        groundMesh.receiveShadow = true;
+        groundMesh.castShadow = false;
+        scene.add(groundMesh);
+
+
+        var epuletTorzsGeometry = new THREE.BoxGeometry(40, 12, 6);
+        var epuletTorzsMaterial = new THREE.MeshPhongMaterial({
+            // color: 0xffffff,
+            // wireframe: false
+        });
+        epuletTorzsMaterial.map = fal;
+
+        var epuletTozsMesh = new THREE.Mesh(epuletTorzsGeometry, epuletTorzsMaterial);
+        epuletTozsMesh.position.y = 6.01
+        epuletTozsMesh.receiveShadow = true;
+        epuletTozsMesh.castShadow = true;
+        scene.add(epuletTozsMesh);
+
+        var epuletKozepsoGeometry = new THREE.BoxGeometry(16, 12, 4);
+        var epuletKozepsoMaterial = new THREE.MeshPhongMaterial({
+            // color: 0xffffff,
+            // wireframe: false
+        });
+        epuletKozepsoMaterial.map = fal;
+
+        var epuletKozepsoMesh = new THREE.Mesh(epuletKozepsoGeometry, epuletKozepsoMaterial);
+        epuletKozepsoMesh.position.y = 6.01;
+        epuletKozepsoMesh.position.z = 5;
+        epuletKozepsoMesh.receiveShadow = true;
+        epuletKozepsoMesh.castShadow = true;
+        scene.add(epuletKozepsoMesh);
+
+        var epuletHatsoGeometry = new THREE.BoxGeometry(32, 12, 4);
+        var epuletHatsoMaterial = new THREE.MeshPhongMaterial({
+            // color: 0xffffff,
+            // wireframe: false
+        });
+        epuletHatsoMaterial.map = fal;
+
+        var epuletHatsoMesh = new THREE.Mesh(epuletHatsoGeometry, epuletHatsoMaterial);
+        epuletHatsoMesh.position.y = 6.01;
+        epuletHatsoMesh.position.z = -5;
+        epuletHatsoMesh.receiveShadow = true;
+        epuletHatsoMesh.castShadow = true;
+        scene.add(epuletHatsoMesh);
+
+        var toronyKozepsoGeometry = new THREE.BoxGeometry(4, 12, 4);
+        var toronyKozepsoMaterial = new THREE.MeshPhongMaterial({
+            // color: 0xffffff,
+            // wireframe: false
+        });
+        toronyKozepsoMaterial.map = fal;
+
+        var toronyKozepsoMesh = new THREE.Mesh(toronyKozepsoGeometry, toronyKozepsoMaterial);
+        toronyKozepsoMesh.position.y = 6.01;
+        toronyKozepsoMesh.position.z = 5;
+        toronyKozepsoMesh.position.x = -10;
+        toronyKozepsoMesh.receiveShadow = true;
+        toronyKozepsoMesh.castShadow = true;
+        scene.add(toronyKozepsoMesh);
+
+        var toronyKozepso2Geometry = new THREE.BoxGeometry(4, 12, 4);
+        var toronyKozepso2Material = new THREE.MeshPhongMaterial({
+            // color: 0xffffff,
+            // wireframe: false
+        });
+        toronyKozepso2Material.map = fal;
+
+        var toronyKozepso2Mesh = new THREE.Mesh(toronyKozepso2Geometry, toronyKozepso2Material);
+        toronyKozepso2Mesh.position.y = 6.01;
+        toronyKozepso2Mesh.position.z = 5;
+        toronyKozepso2Mesh.position.x = 10;
+        toronyKozepso2Mesh.receiveShadow = true;
+        toronyKozepso2Mesh.castShadow = true;
+        scene.add(toronyKozepso2Mesh);
+
+        var epuletBejaratGeometry = new THREE.BoxGeometry(8, 12, 4);
+        var epuletBejaratMaterial = new THREE.MeshPhongMaterial({
+            // color: 0xffffff,
+            // wireframe: false
+        });
+        epuletBejaratMaterial.map = fal;
+
+        var epuletBejaratMesh = new THREE.Mesh(epuletBejaratGeometry, epuletBejaratMaterial);
+        epuletBejaratMesh.position.y = 6.01;
+        epuletBejaratMesh.position.z = 9;
+        epuletBejaratMesh.receiveShadow = true;
+        epuletBejaratMesh.castShadow = true;
+        scene.add(epuletBejaratMesh);
+
+        var toronySzelsoGeometry = new THREE.BoxGeometry(10, 14, 10);
+        var toronySzelsoMaterial = new THREE.MeshPhongMaterial({
+            // color: 0xffffff,
+            // wireframe: false
+        });
+        toronySzelsoMaterial.map = fal;
+
+        var toronySzelsoMesh = new THREE.Mesh(toronySzelsoGeometry, toronySzelsoMaterial);
+        toronySzelsoMesh.position.y = 7.01;
+        toronySzelsoMesh.position.x = -25;
+        toronySzelsoMesh.receiveShadow = true;
+        toronySzelsoMesh.castShadow = true;
+        scene.add(toronySzelsoMesh);
+
+        var toronySzelso2Geometry = new THREE.BoxGeometry(10, 14, 10);
+        var toronySzelso2Material = new THREE.MeshPhongMaterial({
+            // color: 0xffffff,
+            // wireframe: false
+        });
+        toronySzelso2Material.map = fal;
+
+        var toronySzelso2Mesh = new THREE.Mesh(toronySzelso2Geometry, toronySzelso2Material);
+        toronySzelso2Mesh.position.y = 7.01;
+        toronySzelso2Mesh.position.x = 25;
+        toronySzelso2Mesh.receiveShadow = true;
+        toronySzelso2Mesh.castShadow = true;
+        scene.add(toronySzelso2Mesh);
+
+        var toronyElsoGeometry = new THREE.BoxGeometry(4, 14, 4);
+        var toronyElsoMaterial = new THREE.MeshPhongMaterial({
+            // color: 0xffffff,
+            // wireframe: false
+        });
+        toronyElsoMaterial.map = fal;
+
+        var toronyElsoMesh = new THREE.Mesh(toronyElsoGeometry, toronyElsoMaterial);
+        toronyElsoMesh.position.y = 7.01;
+        toronyElsoMesh.position.z = 9;
+        toronyElsoMesh.position.x = -6;
+        toronyElsoMesh.receiveShadow = true;
+        toronyElsoMesh.castShadow = true;
+        scene.add(toronyElsoMesh);
+
+        var toronyElso2Geometry = new THREE.BoxGeometry(4, 14, 4);
+        var toronyElso2Material = new THREE.MeshPhongMaterial({
+            // color: 0xffffff,
+            // wireframe: false
+        });
+        toronyElso2Material.map = fal;
+
+        var toronyElso2Mesh = new THREE.Mesh(toronyElso2Geometry, toronyElso2Material);
+        toronyElso2Mesh.position.y = 7.01;
+        toronyElso2Mesh.position.z = 9;
+        toronyElso2Mesh.position.x = 6;
+        toronyElso2Mesh.receiveShadow = true;
+        toronyElso2Mesh.castShadow = true;
+        scene.add(toronyElso2Mesh);
+
+        var gulaGeometry = new THREE.CylinderGeometry(0, 2.8, 5, 4);
+        var gulaMaterial = new THREE.MeshPhongMaterial({
+            // color: 0xff0000,
+            // wireframe: false
+        });
+        gulaMaterial.map = teto;
+
+        var gulaMesh = new THREE.Mesh(gulaGeometry, gulaMaterial);
+        gulaMesh.position.y = 16.5;
+        gulaMesh.position.x = -6;
+        gulaMesh.position.z = 9;
+        gulaMesh.rotation.y = THREE.Math.degToRad(45);
+        gulaMesh.receiveShadow = true;
+        gulaMesh.castShadow = true;
+        scene.add(gulaMesh);
+
+        var gula2Geometry = new THREE.CylinderGeometry(0, 2.8, 5, 4);
+        var gula2Material = new THREE.MeshPhongMaterial({
+            // color: 0xff0000,
+            // wireframe: false
+        });
+        gula2Material.map = teto;
+
+        var gula2Mesh = new THREE.Mesh(gula2Geometry, gula2Material);
+        gula2Mesh.position.y = 16.5;
+        gula2Mesh.position.x = 6;
+        gula2Mesh.position.z = 9;
+        gula2Mesh.rotation.y = THREE.Math.degToRad(45);
+        gula2Mesh.receiveShadow = true;
+        gula2Mesh.castShadow = true;
+        scene.add(gula2Mesh);
+
+        var tetoGeometry = new THREE.CylinderGeometry(2, 2, 32, 6, 1, false, 0, Math.PI);
+        var tetoMaterial = new THREE.MeshPhongMaterial({
+            // color: 0xff0000,
+            // wireframe: false
+        });
+        tetoMaterial.map = teto;
+
+        var tetoMesh = new THREE.Mesh(tetoGeometry, tetoMaterial);
+        tetoMesh.position.y = 12;
+        tetoMesh.position.z = -5;
+        tetoMesh.rotation.z = THREE.Math.degToRad(90);
+        tetoMesh.receiveShadow = true;
+        tetoMesh.castShadow = true;
+        scene.add(tetoMesh);
+
+        var gula3Geometry = new THREE.CylinderGeometry(3, 5.7, 3, 4, 1);
+        var gula3Material = new THREE.MeshPhongMaterial({
+            // color: 0xff0000,
+            // wireframe: false
+        });
+        gula3Material.map = teto;
+
+        var gula3Mesh = new THREE.Mesh(gula3Geometry, gula3Material);
+        gula3Mesh.position.y = 13.5;
+        gula3Mesh.position.z = 7;
+        gula3Mesh.rotation.y = THREE.Math.degToRad(45);
+        gula3Mesh.receiveShadow = true;
+        gula3Mesh.castShadow = true;
+        scene.add(gula3Mesh);
+
+        var teto2Geometry = new THREE.CylinderGeometry(3, 3, 40, 6, 1, false, 0, Math.PI);
+        var teto2Material = new THREE.MeshPhongMaterial({
+            // color: 0xff0000,
+            // wireframe: false
+        });
+        teto2Material.map = teto;
+
+        var teto2Mesh = new THREE.Mesh(teto2Geometry, teto2Material);
+        teto2Mesh.position.y = 12;
+        teto2Mesh.rotation.z = THREE.Math.degToRad(90);
+        teto2Mesh.receiveShadow = true;
+        teto2Mesh.castShadow = true;
+        scene.add(teto2Mesh);
+
+        var teto3Geometry = new THREE.CylinderGeometry(2, 2, 8, 6, 1, false, 0, Math.PI);
+        var teto3Material = new THREE.MeshPhongMaterial({
+            // color: 0xff0000,
+            // wireframe: false
+        });
+        teto3Material.map = teto;
+
+        var teto3Mesh = new THREE.Mesh(teto3Geometry, teto3Material);
+        teto3Mesh.position.y = 12;
+        teto3Mesh.position.x = -8;
+        teto3Mesh.position.z = 5;
+        teto3Mesh.rotation.z = THREE.Math.degToRad(90);
+        teto3Mesh.receiveShadow = true;
+        teto3Mesh.castShadow = true;
+        scene.add(teto3Mesh);
+
+        var teto4Geometry = new THREE.CylinderGeometry(2, 2, 8, 6, 1, false, 0, Math.PI);
+        var teto4Material = new THREE.MeshPhongMaterial({
+            // color: 0xff0000,
+            // wireframe: false
+        });
+        teto4Material.map = teto;
+
+        var teto4Mesh = new THREE.Mesh(teto4Geometry, teto4Material);
+        teto4Mesh.position.y = 12;
+        teto4Mesh.position.x = 8;
+        teto4Mesh.position.z = 5;
+        teto4Mesh.rotation.z = THREE.Math.degToRad(90);
+        teto4Mesh.receiveShadow = true;
+        teto4Mesh.castShadow = true;
+        scene.add(teto4Mesh);
+
+        var gula4Geometry = new THREE.CylinderGeometry(4, 7.1, 2, 4);
+        var gula4Material = new THREE.MeshPhongMaterial({
+            // color: 0xff0000,
+            // wireframe: false
+        });
+        gula4Material.map = teto;
+
+        var gula4Mesh = new THREE.Mesh(gula4Geometry, gula4Material);
+        gula4Mesh.position.y = 15.01;
+        gula4Mesh.position.x = -25;
+        gula4Mesh.rotation.y = THREE.Math.degToRad(45);
+        gula4Mesh.receiveShadow = true;
+        gula4Mesh.castShadow = true;
+        scene.add(gula4Mesh);
+
+        var gula5Geometry = new THREE.CylinderGeometry(4, 7.1, 2, 4);
+        var gula5Material = new THREE.MeshPhongMaterial({
+            // color: 0xff0000,
+            // wireframe: false
+        });
+        gula5Material.map = teto;
+
+        var gula5Mesh = new THREE.Mesh(gula5Geometry, gula5Material);
+        gula5Mesh.position.y = 15.01;
+        gula5Mesh.position.x = 25;
+        gula5Mesh.rotation.y = THREE.Math.degToRad(45);
+        gula5Mesh.receiveShadow = true;
+        gula5Mesh.castShadow = true;
+        scene.add(gula5Mesh);
+
+        var teto5Geometry = new THREE.CylinderGeometry(1, 1, 3, 6, 1, false, 0, Math.PI * 0.5);
+        var teto5Material = new THREE.MeshPhongMaterial({
+            // color: 0xff0000,
+            // wireframe: false
+        });
+        teto5Material.map = szovet;
+
+        var teto5Mesh = new THREE.Mesh(teto5Geometry, teto5Material);
+        teto5Mesh.position.y = 5;
+        teto5Mesh.position.z = 11;
+        teto5Mesh.rotation.z = THREE.Math.degToRad(90);
+        teto5Mesh.receiveShadow = true;
+        teto5Mesh.castShadow = true;
+        scene.add(teto5Mesh);
+
+        var teto6Geometry = new THREE.CylinderGeometry(3, 3, 20, 1, 1, false, 0, Math.PI * 0.5);
+        var teto6Material = new THREE.MeshPhongMaterial({
+            // color: 0xff0000,
+            // wireframe: false
+        });
+        teto6Material.map = szovet;
+
+        var teto6Mesh = new THREE.Mesh(teto6Geometry, teto6Material);
+        teto6Mesh.position.y = 5;
+        teto6Mesh.position.z = -7;
+        teto6Mesh.rotation.z = THREE.Math.degToRad(90);
+        teto6Mesh.rotation.x = THREE.Math.degToRad(-90);
+        teto6Mesh.receiveShadow = true;
+        teto6Mesh.castShadow = true;
+        scene.add(teto6Mesh);
+
+        var lampaAlapGeometry = new THREE.BoxGeometry(0.5, 6, 0.5);
+        var lampaAlapMaterial = new THREE.MeshPhongMaterial({
+            // color: 0xffffff,
+            // wireframe: false
+        });
+        lampaAlapMaterial.map = metal;
+
+        var lampaAlapMesh = new THREE.Mesh(lampaAlapGeometry, lampaAlapMaterial);
+        lampaAlapMesh.position.y = 3.01;
+        lampaAlapMesh.position.x = 15;
+        lampaAlapMesh.position.z = 20;
+        lampaAlapMesh.receiveShadow = true;
+        lampaAlapMesh.castShadow = true;
+        scene.add(lampaAlapMesh);
+
+        var lampaEgoGeometry = new THREE.SphereGeometry(1, 15, 30);
+        var lampaEgoMaterial = new THREE.MeshBasicMaterial({
+            // color: 0xffeeb1,
+            // wireframe: false
+        });
+        lampaEgoMaterial.map = ego;
+
+        var lampaEgoMesh = new THREE.Mesh(lampaEgoGeometry, lampaEgoMaterial);
+        lampaEgoMesh.position.y = 7.01;
+        lampaEgoMesh.position.x = 15;
+        lampaEgoMesh.position.z = 20;
+        scene.add(lampaEgoMesh);
+
+        var lampaAlap2Geometry = new THREE.BoxGeometry(0.5, 6, 0.5);
+        var lampaAlap2Material = new THREE.MeshPhongMaterial({
+            // color: 0xffffff,
+            // wireframe: false
+        });
+        lampaAlap2Material.map = metal;
+
+        var lampaAlap2Mesh = new THREE.Mesh(lampaAlap2Geometry, lampaAlap2Material);
+        lampaAlap2Mesh.position.y = 3.01;
+        lampaAlap2Mesh.position.x = -15;
+        lampaAlap2Mesh.position.z = 20;
+        lampaAlap2Mesh.receiveShadow = true;
+        lampaAlap2Mesh.castShadow = true;
+        scene.add(lampaAlap2Mesh);
+
+        var lampaEgo2Geometry = new THREE.SphereGeometry(1, 15, 30);
+        var lampaEgo2Material = new THREE.MeshBasicMaterial({
+            // color: 0xffeeb1,
+            // wireframe: false
+        });
+        lampaEgo2Material.map = ego;
+
+        var lampaEgo2Mesh = new THREE.Mesh(lampaEgo2Geometry, lampaEgo2Material);
+        lampaEgo2Mesh.position.y = 7.01;
+        lampaEgo2Mesh.position.x = -15;
+        lampaEgo2Mesh.position.z = 20;
+        scene.add(lampaEgo2Mesh);
+
+
+        var tablaAlapGeometry = new THREE.BoxGeometry(0.5, 6, 0.5);
+        var tablaAlapMaterial = new THREE.MeshPhongMaterial({
+            // color: 0xffffff,
+            // wireframe: false
+        });
+        tablaAlapMaterial.map = tabla;
+
+        var tablaAlapMesh = new THREE.Mesh(tablaAlapGeometry, tablaAlapMaterial);
+        tablaAlapMesh.position.y = 3.01;
+        tablaAlapMesh.position.x = -15;
+        tablaAlapMesh.position.z = -15;
+        tablaAlapMesh.receiveShadow = true;
+        tablaAlapMesh.castShadow = true;
+        scene.add(tablaAlapMesh);
+
+
+        var tablaGeometry = new THREE.BoxGeometry(5, 1, 0.6);
+        var talaMaterial = new THREE.MeshPhongMaterial({
+            // color: 0xffffff,
+            // wireframe: false
+        });
+        talaMaterial.map = tabla;
+
+        var tablaMesh = new THREE.Mesh(tablaGeometry, talaMaterial);
+        tablaMesh.position.y = 5.01
+        tablaMesh.position.x = -15;
+        tablaMesh.position.z = -15;
+        tablaMesh.rotation.y = THREE.Math.degToRad(90);
+        tablaMesh.receiveShadow = true;
+        tablaMesh.castShadow = true;
+        scene.add(tablaMesh);
+
+
+        var sinGeometry = new THREE.BoxGeometry(60, 0.2, 0.2);
+        var sinMaterial = new THREE.MeshPhongMaterial({
+            // color: 0x000000,
+            // wireframe: false
+        });
+        sinMaterial.map = metal;
+
+        var sinMesh = new THREE.Mesh(sinGeometry, sinMaterial);
+        sinMesh.position.y = 0.11;
+        sinMesh.position.x = 0;
+        sinMesh.position.z = -22;
+        sinMesh.receiveShadow = true;
+        sinMesh.castShadow = true;
+        scene.add(sinMesh);
+
+        var sin2Geometry = new THREE.BoxGeometry(60, 0.2, 0.2);
+        var sin2Material = new THREE.MeshPhongMaterial({
+            // color: 0x000000,
+            // wireframe: false
+        });
+        sin2Material.map = metal;
+
+        var sin2Mesh = new THREE.Mesh(sin2Geometry, sin2Material);
+        sin2Mesh.position.y = 0.11;
+        sin2Mesh.position.x = 0;
+        sin2Mesh.position.z = -25;
+        sin2Mesh.receiveShadow = true;
+        sin2Mesh.castShadow = true;
+        scene.add(sin2Mesh);
+
+        var vonatTestGeometry = new THREE.BoxGeometry(9, 6, 4);
+        var vonatTestMaterial = new THREE.MeshPhongMaterial();
+        vonatTestMaterial.map = vagontest;
+
+
+        vonatTestMesh = new THREE.Mesh(vonatTestGeometry, vonatTestMaterial);
+        vonatTestMesh.position.y = 3.2;
+        vonatTestMesh.position.x = 0;
+        vonatTestMesh.position.z = -23.5;
+        vonatTestMesh.receiveShadow = true;
+        vonatTestMesh.castShadow = true;
+        scene.add(vonatTestMesh);
+
+
+        sLight = new THREE.SpotLight(0xffffff, 1);
+        sLight.position.set(-15, 8.01, 20);
+        sLight.angle = Math.PI;
+        sLight.target = teto5Mesh;
+        sLight.penumbra = 0.2;
+        sLight.distance = 40;
+        sLight.castShadow = true;
+        //  sLight.intensity = 0.8;
+        scene.add(sLight);
+
+        s2Light = new THREE.SpotLight(0xffffff, 1);
+        s2Light.position.set(15, 8.01, 20);
+        s2Light.angle = Math.PI;
+        s2Light.target = teto5Mesh;
+        s2Light.penumbra = 0.6;
+        s2Light.distance = 30;
+        s2Light.castShadow = true;
+        scene.add(s2Light);
+
+
+        var ambientLight = new THREE.AmbientLight(0xffeeb1, 0.2);
+        ambientLight.castShadow = true;
+        scene.add(ambientLight);
+
+        var pLight = new THREE.PointLight(0xffffff, 0.3);
+        pLight.position.set(0, 50, -20);
+        pLight.angle = Math.PI / 6;
+        pLight.target = gula3Mesh;
+        pLight.decay = 0.5
+        pLight.distance = 70;
+        pLight.castShadow = true;
+        scene.add(pLight);
+
+
+        // var spotLightHelper = new THREE.SpotLightHelper( pLight );
+        // scene.add( spotLightHelper );
+        //
+        // var spotLightHelper2 = new THREE.SpotLightHelper( sLight );
+        // scene.add( spotLightHelper2 );
+        //
+        // var spotLightHelper3 = new THREE.SpotLightHelper( s2Light );
+        // scene.add( spotLightHelper3 );
+
+        generateTextGeometry();
+
+        window.addEventListener('resize', handleWindowResize, false);
+
+        controls = new TrackballControls(camera, renderer.domElement);
+        controls.rotateSpeed = 5.0;
+        controls.panSpeed = 1.0;
+
+
+    }
+
+
+    function handleWindowResize() {
+        HEIGHT = window.innerHeight;
+        WIDTH = window.innerWidth;
+        console.log('WIDTH=' + WIDTH + '; HEIGHT=' + HEIGHT);
+        renderer.setSize(WIDTH, HEIGHT);
+        aspectRatio = WIDTH / HEIGHT;
+        camera.aspect = aspectRatio;
+        camera.updateProjectionMatrix();
+
+        render();
+    }
+
+    function animate() {
+        delta = clock.getDelta();
+
+        requestAnimationFrame(animate);
+        controls.update();
+
+
+        if (vonatTestMesh.position.x > 25) {
+            // alert(vonatTestMesh.position.x);
+            irany = 0
+        }
+        if (vonatTestMesh.position.x < -30) {
+            vonatTestMesh.rotation.z += 0.01;
+            if (vonatTestMesh.position.x < -35) {
+                vonatTestMesh.rotation.z += 0.05;
+                vonatTestMesh.rotation.y -= 0.05;
+                vonatTestMesh.position.y -= 0.2;
+                if (vonatTestMesh.position.y < -50) {
+
+                    vonatTestMesh.position.y = 3.2;
+                    vonatTestMesh.position.x = 35;
+                    vonatTestMesh.position.z = -23.5;
+
+                    vonatTestMesh.rotation.z = 0;
+                    vonatTestMesh.rotation.y = 0;
+                    irany = 0
+
+
+                    // vonatTestMesh.position.y = 3.2;
+                    // vonatTestMesh.position.x = 0;
+                    // vonatTestMesh.position.z = -23.5;
+
+                }
+            }
+            // irany = 1
+        }
+
+        if (irany == 1) {
+            vonatTestMesh.position.x += 0.1;
+        } else {
+            vonatTestMesh.position.x -= 0.1;
+        }
+
+        if (pressedChar == 76) {
+            if(s2Light.visible == false){
+                s2Light.visible = true;
+            }else {
+                s2Light.visible = false;
+            }
+        }
+
+        if (pressedChar == 75) {
+            if(sLight.visible == false){
+                sLight.visible = true;
+            }else {
+                sLight.visible = false;
+            }
+        }
+
+
+        if (pressedChar == 73) {
+            if(mesh.visible == false){
+                mesh.visible = true;
+            }else {
+                mesh.visible = false;
+            }
+        }
+
+        pressedChar = ""
+        render();
+    }
+
+    function render() {
+        renderer.render(scene, camera);
+    }
+
+    function handleKeyPress(event) {
+        var char = event.which;
+        console.log("karakter:" + char)
+        pressedChar = char;
+    }
+
+
+</script>
+
+
+</body>
+
+</html>
+
+
